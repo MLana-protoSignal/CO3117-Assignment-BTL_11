@@ -22,7 +22,11 @@ def train_and_save_model():
 
     # Huấn luyện mô hình Decision Tree
     print("Đang huấn luyện Decision Tree...")
-    model = DecisionTreeClassifier(random_state=42)
+    model = DecisionTreeClassifier(
+    max_depth=5,           # Giới hạn độ sâu tối đa của cây
+    min_samples_leaf=10,   # Một lá phải có ít nhất 10 mẫu mới được tạo
+    random_state=42
+    )   
     model.fit(X_train, y_train)
 
     # Đánh giá mô hình
