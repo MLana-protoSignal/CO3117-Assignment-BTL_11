@@ -1,0 +1,16 @@
+{
+  "metric_chon_tham_so": "f1",
+  "Decision Tree": {
+    "criterion": "entropy",
+    "max_depth": 10,
+    "min_samples_leaf": 5
+  },
+  "Random Forest": {
+    "n_estimators": 200,
+    "min_samples_split": 10,
+    "min_samples_leaf": 16,
+    "max_features": 0.5,
+    "max_depth": null,
+    "criterion": "entropy"
+  }
+}

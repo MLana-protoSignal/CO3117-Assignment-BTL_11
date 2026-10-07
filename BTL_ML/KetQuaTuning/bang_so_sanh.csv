@@ -1,0 +1,5 @@
+﻿,Accuracy,Precision,Recall,F1,ROC-AUC,PR-AUC,TN,FP,FN,TP,F1 train
+Decision Tree (baseline),0.6624,0.1003,0.74,0.1766,0.795,0.1438,640,332,13,37,0.8421
+Decision Tree (tuned),0.7975,0.1208,0.5,0.1946,0.6745,0.1387,790,182,25,25,0.8964
+Random Forest (baseline),0.8845,0.1136,0.2,0.1449,0.785,0.1345,894,78,40,10,1.0
+Random Forest (tuned),0.8307,0.1676,0.62,0.2638,0.8151,0.1686,818,154,19,31,0.9202
