@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold, cross_validate
     
 # k-fold testing
-def k_foldProcess(k):
+def k_foldProcess(k=5, numjob=-1):
     # k-Fold divide
     df = pd.read_csv('healthcare-dataset-stroke-data.csv')
     features = df.drop(columns=['stroke'])
@@ -13,15 +13,15 @@ def k_foldProcess(k):
 
     # Start Performance evaluating
     # Define Metric to use in evaluation
-    scoringMetrics = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc', 'neg_log_loss']
+    scoringMetrics = ['accuracy', 'precision', 'recall', 'f1', 'neg_log_loss']
 
     # Decision Tree
     decisionTreeModel = train_and_save_model() #chỉnh lại tên hàm này
-    decisionTreeResult = cross_validate(decisionTreeModel, features, target, cv=k_foldDivide, scoring=scoringMetrics)
+    decisionTreeResult = cross_validate(decisionTreeModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=numjob)
 
     # Random Forest
     randomForestModel = train_random_forest() #chỉnh lại tên hàm này
-    randomForestResult = cross_validate(randomForestModel, features, target, cv=k_foldDivide, scoring=scoringMetrics)
+    randomForestResult = cross_validate(randomForestModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=numjob)
 
     # Comparison Data
     comparisonResult = pd.DataFrame({
@@ -34,10 +34,10 @@ def k_foldProcess(k):
             'Recall Variance', 
             'F1-Score Mean', 
             'F1-Score Variance', 
-            'ROC-AUC Mean', 
-            'ROC-AUC Variance',
             'Log Loss Mean', 
-            'Log Loss Variance'
+            'Log Loss Variance',
+            'Training Time Mean',
+            'Training Time Variance'
         ],
         'Decision tree': [
             decisionTreeResult['test_accuracy'].mean(),
@@ -48,10 +48,10 @@ def k_foldProcess(k):
             decisionTreeResult['test_recall'].var(),
             decisionTreeResult['test_f1'].mean(),
             decisionTreeResult['test_f1'].var(),
-            decisionTreeResult['test_roc_auc'].mean(),
-            decisionTreeResult['test_roc_auc'].var(),
             decisionTreeResult['test_neg_log_loss'].mean(),
-            decisionTreeResult['test_neg_log_loss'].var()
+            decisionTreeResult['test_neg_log_loss'].var(),
+            decisionTreeResult['fit_time'].mean(),
+            decisionTreeResult['fit_time'].var()
         ],
         'Random Forest': [
             randomForestResult['test_accuracy'].mean(),
@@ -62,10 +62,10 @@ def k_foldProcess(k):
             randomForestResult['test_recall'].var(),
             randomForestResult['test_f1'].mean(),
             randomForestResult['test_f1'].var(),
-            randomForestResult['test_roc_auc'].mean(),
-            randomForestResult['test_roc_auc'].var(),
             randomForestResult['test_neg_log_loss'].mean(),
-            randomForestResult['test_neg_log_loss'].var()
+            randomForestResult['test_neg_log_loss'].var(),
+            randomForestResult['fit_time'].mean(),
+            randomForestResult['fit_time'].var()
         ]
     })
     print(comparisonResult.to_string(index=False))
@@ -74,4 +74,5 @@ def k_foldProcess(k):
 
 if __name__ == "__main__":
     k2fold = input("Number fold to divide for Performance Evaluation: ").strip()
-    k_foldProcess(k2fold)
+    jobs = input("Number of CPU processes running in parallel: ").strip()
+    k_foldProcess(k=k2fold, numjob=jobs)
