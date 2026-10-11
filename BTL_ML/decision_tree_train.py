@@ -4,41 +4,41 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.tree import DecisionTreeClassifier
 
 
-def train_and_save_model():
-    # Đọc dữ liệu đã tiền xử lý từ Tien_Xu_Ly.py
-    train_path = 'stroke_train_preprocessed.csv'
-    test_path = 'stroke_test_preprocessed.csv'
+def model_declare(max_depth=5, min_samples_leaf=10, random_state=42):
+    # Khởi tạo và trả về model trực tiếp từ các tham số truyền vào
+    model = DecisionTreeClassifier(
+        max_depth=max_depth,
+        min_samples_leaf=min_samples_leaf,
+        random_state=random_state
+    )
+    return model
 
-    print("Đang tải dữ liệu huấn luyện...")
+def train_model(model_input):
+    # 1. Hỏi người dùng nhập đường dẫn file train (mặc định 'stroke_preprocessed.csv')
+    path_input = input("Nhập đường dẫn file train (mặc định 'stroke_preprocessed.csv'): ").strip()
+    train_path = path_input if path_input else 'stroke_preprocessed.csv'
+
+    # 2. Đọc dữ liệu từ đường dẫn
     df_train = pd.read_csv(train_path)
-    df_test = pd.read_csv(test_path)
 
     target_col = 'stroke'
     X_train = df_train.drop(columns=[target_col])
     y_train = df_train[target_col]
 
-    X_test = df_test.drop(columns=[target_col])
-    y_test = df_test[target_col]
+    # 3. Huấn luyện mô hình truyền vào
+    model_input.fit(X_train, y_train)
+    
+    # 4. Hỏi tên file lưu model (mặc định 'decision_tree_stroke_model.pkl')
+    model_name_input = input("Nhập tên file để lưu model (mặc định 'decision_tree_stroke_model.pkl'): ").strip()
+    if not model_name_input:
+        save_filename = 'decision_tree_stroke_model.pkl'
+    else:
+        # Tự động thêm đuôi .pkl nếu người dùng không nhập
+        save_filename = model_name_input if model_name_input.endswith('.pkl') else f"{model_name_input}.pkl"
 
-    # Huấn luyện mô hình Decision Tree
-    print("Đang huấn luyện Decision Tree...")
-    model = DecisionTreeClassifier(
-    max_depth=5,           # Giới hạn độ sâu tối đa của cây
-    min_samples_leaf=10,   # Một lá phải có ít nhất 10 mẫu mới được tạo
-    random_state=42
-    )   
-    model.fit(X_train, y_train)
+    # 5. Lưu mô hình
+    joblib.dump(model_input, save_filename)
+    print(f"-> Đã lưu mô hình thành công vào '{save_filename}'!")
+    
+    return model_input
 
-    # Đánh giá mô hình
-    y_pred = model.predict(X_test)
-    print("\n=== ĐÁNH GIÁ MÔ HÌNH THÀNH CÔNG ===")
-    print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
-    print("\nClassification Report:\n", classification_report(y_test, y_pred))
-
-    # Lưu duy nhất mô hình
-    joblib.dump(model, 'decision_tree_stroke_model.pkl')
-    print("-> Đã lưu mô hình thành công vào 'decision_tree_stroke_model.pkl'!")
-
-
-if __name__ == "__main__":
-    train_and_save_model()
