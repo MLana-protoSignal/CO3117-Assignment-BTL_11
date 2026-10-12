@@ -4,7 +4,7 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.tree import DecisionTreeClassifier
 
 
-def model_declare(max_depth=5, min_samples_leaf=10, random_state=42):
+def model_decisionTree_declare(max_depth=5, min_samples_leaf=10, random_state=42):
     # Khởi tạo và trả về model trực tiếp từ các tham số truyền vào
     model = DecisionTreeClassifier(
         max_depth=max_depth,
@@ -13,7 +13,7 @@ def model_declare(max_depth=5, min_samples_leaf=10, random_state=42):
     )
     return model
 
-def train_model(model_input):
+def train_decisionTree_model(model_input):
     # 1. Hỏi người dùng nhập đường dẫn file train (mặc định 'stroke_preprocessed.csv')
     path_input = input("Nhập đường dẫn file train (mặc định 'stroke_preprocessed.csv'): ").strip()
     train_path = path_input if path_input else 'stroke_preprocessed.csv'

@@ -12,17 +12,17 @@ Trong thư mục BieuDoPhanTich, tôi có viết một file dùng để vẽ cá
 
 # PATCH 1.1.1: cấu trúc lại hệ thống chương trình
 ## Tái cấu trúc lại file train, trong đó hàm model_decisionTree_declare() nhằm mục đích khai báo model 
-Ví dụ cách dùng: my_model = model_declare(max_depth=5, min_samples_leaf=10, random_state=42)
-Hướng tới file main: trong main sẽ viết hỏi các thông số maxdepth,... từ bàn phím người dùng và truyền cho model_declare
+Ví dụ cách dùng: my_model = model_decisionTree_declare(max_depth=5, min_samples_leaf=10, random_state=42)
+Hướng tới file main: trong main sẽ viết hỏi các thông số maxdepth,... từ bàn phím người dùng và truyền cho model_decisionTree_declare
 
-Sau đó để huấn luyện, ví dụ: trained_model = train_model(my_model)
+Sau đó để huấn luyện, ví dụ: trained_model = train_decisionTree_model(my_model)
 
 ## Về vấn đề predict:
 ### Giả sử muốn redict một tập test luôn cho lẹ thì ví dụ cách dùng:
 
-model = model_declare(max_depth=5)
+model = model_decisionTree_declare(max_depth=5)
 
-trained_model = train_model(model)
+trained_decisionTree_model = train_decisionTree_model(model)
 
 df_test = pd.read_csv("stroke_test.csv")
 
@@ -30,7 +30,7 @@ X_test = df_test.drop(columns=["stroke"])
 
 y_test = df_test["stroke"]
 
-y_pred = trained_model.predict(X_test)
+y_pred = trained_decisionTree_model.predict(X_test)
 
 print("Accuracy:", accuracy_score(y_test, y_pred))
 
