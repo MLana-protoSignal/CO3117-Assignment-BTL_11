@@ -42,3 +42,9 @@ print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
 ## hiện chưa hoàn chỉnh lại predictor cho cả 2 mô hình, sẽ hoàn thành sau và cập nhật
 
+# PATCH 1.1.2: đã cấu trúc lại cho randomforest cho đúng hệ thống chương trình
+Cách sử dụng sẽ giống hệt với decision tree, chỉ đổi tên.
+## về main.py
+Hiện tại thì mới test xem các hàm hoạt động tốt không, chưa triển khai vấn đề hỏi người dùng khai báo thông số cho model (cái này thì cũng nhanh thôi), nhưng về cơ bản là oke hết rồi, nếu muốn phát triển thêm code thì hãy thêm vào main hoặc sử dụng các API tôi đã định sẵn.
+
+Theo tôi thì về luồng chạy của main.py (chạy cái gì, dùng như nào, ...) nên để quyết định sau, hiện tại thì cứ làm và đóng gói các tính năng cốt lõi theo các requirement thành hàm để vào main gọi cho dễ.

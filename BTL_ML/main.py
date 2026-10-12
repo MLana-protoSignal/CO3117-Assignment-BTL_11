@@ -1,7 +1,8 @@
 import os
 import sys
 import subprocess
-
+from decision_tree_train import *
+from random_forest_train import *
 # Lista các thư viện cần thiết dựa trên các file code của bạn
 REQUIRED_PACKAGES = [
     'pandas',
@@ -70,6 +71,16 @@ def run_predictor(script_name):
 def main():
     # 1. Tải và cài đặt các thư viện thiếu
     install_and_import()
+
+    ######################TEST_PHASE############################
+
+    #có thể code thêm cái hỏi người dùng để người dùng tùy ý declare các thông số cho model(triển khai sau)
+    model = model_decisionTree_declare(max_depth=5)
+    trained_decisionTree_model = train_decisionTree_model(model)
+
+    model2 = model_randomForest_declare()
+    trained_randomForest_model = train_randomForest_model(model2)
+    ############################################################
 
     # 2. Hiển thị tiêu đề
     display_header()
