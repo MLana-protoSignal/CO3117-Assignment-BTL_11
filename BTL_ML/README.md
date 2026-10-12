@@ -40,3 +40,5 @@ print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
 ## Đã thay đổi file tiền xử lý lại, chỉ có tiền xử lý file và quăng ra stroke_preprocessed.csv
 
+## hiện chưa hoàn chỉnh lại predictor cho cả 2 mô hình, sẽ hoàn thành sau và cập nhật
+
