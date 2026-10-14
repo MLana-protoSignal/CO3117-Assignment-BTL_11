@@ -2,9 +2,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, cross_validate
-    
+from sklearn.metrics import classification_report
+
 # k-fold testing
-def k_foldProcess(k=5, numjob=-1):
+def k_foldProcess(
+        k=5, 
+        modelCriterion='gini', 
+        maxDepth=None, 
+        minSamplesSplit=2, 
+        minSamplesLeaf=1, 
+        maxLeaf=None,
+        classWeight=None, 
+        ccpAlpha=0.0
+    ):
+    
     # k-Fold divide
     df = pd.read_csv('healthcare-dataset-stroke-data.csv')
     features = df.drop(columns=['stroke'])
@@ -16,12 +27,30 @@ def k_foldProcess(k=5, numjob=-1):
     scoringMetrics = ['accuracy', 'precision', 'recall', 'f1', 'neg_log_loss']
 
     # Decision Tree
-    decisionTreeModel = train_and_save_model() #chỉnh lại tên hàm này
-    decisionTreeResult = cross_validate(decisionTreeModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=numjob)
+    decisionTreeModel = model_decisionTree_declare(
+        criterion=modelCriterion, 
+        max_depth=maxDepth, 
+        min_samples_split=minSamplesSplit, 
+        min_samples_leaf=minSamplesLeaf, 
+        max_leaf_nodes=maxLeaf,
+        random_state=42,
+        class_weight=classWeight, 
+        ccp_alpha=ccpAlpha
+    )
+    decisionTreeResult = cross_validate(decisionTreeModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=-1)
 
     # Random Forest
-    randomForestModel = train_random_forest() #chỉnh lại tên hàm này
-    randomForestResult = cross_validate(randomForestModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=numjob)
+    randomForestModel = model_randomForest_declare(
+        criterion=modelCriterion,
+        max_depth=maxDepth, 
+        min_samples_split=minSamplesSplit, 
+        min_samples_leaf=minSamplesLeaf,
+        max_leaf_nodes=maxLeaf, 
+        random_state=42,
+        class_weight=classWeight, 
+        ccp_alpha=ccpAlpha
+    )
+    randomForestResult = cross_validate(randomForestModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=-1)
 
     # Comparison Data
     comparisonResult = pd.DataFrame({
@@ -35,9 +64,7 @@ def k_foldProcess(k=5, numjob=-1):
             'F1-Score Mean', 
             'F1-Score Variance', 
             'Log Loss Mean', 
-            'Log Loss Variance',
-            'Training Time Mean',
-            'Training Time Variance'
+            'Log Loss Variance'
         ],
         'Decision tree': [
             decisionTreeResult['test_accuracy'].mean(),
@@ -49,9 +76,7 @@ def k_foldProcess(k=5, numjob=-1):
             decisionTreeResult['test_f1'].mean(),
             decisionTreeResult['test_f1'].var(),
             decisionTreeResult['test_neg_log_loss'].mean(),
-            decisionTreeResult['test_neg_log_loss'].var(),
-            decisionTreeResult['fit_time'].mean(),
-            decisionTreeResult['fit_time'].var()
+            decisionTreeResult['test_neg_log_loss'].var()
         ],
         'Random Forest': [
             randomForestResult['test_accuracy'].mean(),
@@ -63,9 +88,7 @@ def k_foldProcess(k=5, numjob=-1):
             randomForestResult['test_f1'].mean(),
             randomForestResult['test_f1'].var(),
             randomForestResult['test_neg_log_loss'].mean(),
-            randomForestResult['test_neg_log_loss'].var(),
-            randomForestResult['fit_time'].mean(),
-            randomForestResult['fit_time'].var()
+            randomForestResult['test_neg_log_loss'].var()
         ]
     })
     print(comparisonResult.to_string(index=False))
@@ -73,6 +96,21 @@ def k_foldProcess(k=5, numjob=-1):
 
 
 if __name__ == "__main__":
-    k2fold = input("Number fold to divide for Performance Evaluation: ").strip()
-    jobs = input("Number of CPU processes running in parallel: ").strip()
-    k_foldProcess(k=k2fold, numjob=jobs)
+    k = input("Number fold to divide for Performance Evaluation: ").strip()
+    modelCriterion = input("Criterion: ").strip() 
+    maxDepth = input("Maximum depth: ").strip() 
+    minSamplesSplit = input("Minimum number of samples required to split an internal node: ").strip() 
+    minSamplesLeaf = input("Minimum number of samples required to be at a leaf node: ").strip() 
+    maxLeaf = input("Maximum number of leaf nodes: ").strip() 
+    classWeight = input("Class Weight: ").strip()
+    ccpAlpha = input("Complexity parameter used for Minimal Cost-Complexity Pruning: ").strip() 
+    k_foldProcess(
+        k=k, 
+        modelCriterion=modelCriterion, 
+        maxDepth=maxDepth, 
+        minSamplesSplit=minSamplesSplit, 
+        minSamplesLeaf=minSamplesLeaf, 
+        maxLeaf=maxLeaf,
+        classWeight=classWeight, 
+        ccpAlpha=ccpAlpha, 
+    )
