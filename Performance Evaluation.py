@@ -24,7 +24,7 @@ def k_foldProcess(
 
     # Start Performance evaluating
     # Define Metric to use in evaluation
-    scoringMetrics = ['accuracy', 'precision', 'recall', 'f1', 'neg_log_loss']
+    scoringMetrics = ['precision', 'recall', 'f1']
 
     # Decision Tree
     decisionTreeModel = model_decisionTree_declare(
@@ -54,41 +54,29 @@ def k_foldProcess(
 
     # Comparison Data
     comparisonResult = pd.DataFrame({
-        'Metric': [
-            'Accuracy Mean', 
-            'Accuracy Variance', 
+        'Metrics': [
             'Precision Mean', 
             'Precision Variance', 
             'Recall Mean', 
             'Recall Variance', 
             'F1-Score Mean', 
-            'F1-Score Variance', 
-            'Log Loss Mean', 
-            'Log Loss Variance'
+            'F1-Score Variance'
         ],
         'Decision tree': [
-            decisionTreeResult['test_accuracy'].mean(),
-            decisionTreeResult['test_accuracy'].var(),
             decisionTreeResult['test_precision'].mean(),
             decisionTreeResult['test_precision'].var(),
             decisionTreeResult['test_recall'].mean(),
             decisionTreeResult['test_recall'].var(),
             decisionTreeResult['test_f1'].mean(),
-            decisionTreeResult['test_f1'].var(),
-            decisionTreeResult['test_neg_log_loss'].mean(),
-            decisionTreeResult['test_neg_log_loss'].var()
+            decisionTreeResult['test_f1'].var()
         ],
         'Random Forest': [
-            randomForestResult['test_accuracy'].mean(),
-            randomForestResult['test_accuracy'].var(),
             randomForestResult['test_precision'].mean(),
             randomForestResult['test_precision'].var(),
             randomForestResult['test_recall'].mean(),
             randomForestResult['test_recall'].var(),
             randomForestResult['test_f1'].mean(),
-            randomForestResult['test_f1'].var(),
-            randomForestResult['test_neg_log_loss'].mean(),
-            randomForestResult['test_neg_log_loss'].var()
+            randomForestResult['test_f1'].var()
         ]
     })
     print(comparisonResult.to_string(index=False))
