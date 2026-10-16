@@ -6,12 +6,13 @@ from sklearn.metrics import classification_report
 
 # k-fold testing
 def k_foldProcess(
+        randomStateCross=42,
         k=5, 
         modelCriterion='gini', 
         maxDepth=None, 
+        maxLeaf=None,
         minSamplesSplit=2, 
         minSamplesLeaf=1, 
-        maxLeaf=None,
         classWeight=None, 
         ccpAlpha=0.0
     ):
@@ -20,7 +21,7 @@ def k_foldProcess(
     df = pd.read_csv('healthcare-dataset-stroke-data.csv')
     features = df.drop(columns=['stroke'])
     target = df['stroke']
-    k_foldDivide = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
+    k_foldDivide = StratifiedKFold(n_splits=k, shuffle=True, random_state=randomStateCross)
 
     # Start Performance evaluating
     # Define Metric to use in evaluation
@@ -30,9 +31,9 @@ def k_foldProcess(
     decisionTreeModel = model_decisionTree_declare(
         criterion=modelCriterion, 
         max_depth=maxDepth, 
+        max_leaf_nodes=maxLeaf,
         min_samples_split=minSamplesSplit, 
         min_samples_leaf=minSamplesLeaf, 
-        max_leaf_nodes=maxLeaf,
         random_state=42,
         class_weight=classWeight, 
         ccp_alpha=ccpAlpha
@@ -43,9 +44,9 @@ def k_foldProcess(
     randomForestModel = model_randomForest_declare(
         criterion=modelCriterion,
         max_depth=maxDepth, 
+        max_leaf_nodes=maxLeaf,
         min_samples_split=minSamplesSplit, 
         min_samples_leaf=minSamplesLeaf,
-        max_leaf_nodes=maxLeaf, 
         random_state=42,
         class_weight=classWeight, 
         ccp_alpha=ccpAlpha
@@ -82,23 +83,36 @@ def k_foldProcess(
     print(comparisonResult.to_string(index=False))
     # Finish Performance evaluating 
 
+# Model Evaluation
+def modelEvaluation():
+    randomStateCross1 = [0, 42, 100]
+    k2 = [3, 5, 10]  
+    modelCriterion3 = ['gini', 'entropy', 'log_loss'] 
+    maxDepth4 = [None, 10, 20] 
+    maxLeaf4 = [None, 20, 50]
+    minSamplesSplit5 = [2, 8, 20] 
+    minSamplesLeaf5 = [1, 5, 10] 
+    classWeight6 = [None, 'balanced'] 
+    ccpAlpha6 = [0.0, 0.0001, 0.001, 0.01, 0.5]
+
+    print("Model Evaluation")
+    for randomStateCross in randomStateCross1:
+        k_foldProcess(randomStateCross=randomStateCross)
+
+    for k in k2:
+        k_foldProcess(k=k)
+
+    for modelCriterion in modelCriterion3:
+        k_foldProcess(modelCriterion=modelCriterion)
+
+    for maxDepth, maxLeaf in zip(maxDepth4, maxLeaf4):
+        k_foldProcess(maxDepth=maxDepth, maxLeaf=maxLeaf)
+
+    for minSamplesSplit, minSamplesLeaf in zip(minSamplesSplit5, minSamplesLeaf5):
+        k_foldProcess(minSamplesSplit=minSamplesSplit, minSamplesLeaf=minSamplesLeaf) 
+
+    for classWeight, ccpAlpha in zip(classWeight6, ccpAlpha6):
+        k_foldProcess(classWeight=classWeight, ccpAlpha=ccpAlpha)
 
 if __name__ == "__main__":
-    k = input("Number fold to divide for Performance Evaluation: ").strip()
-    modelCriterion = input("Criterion: ").strip() 
-    maxDepth = input("Maximum depth: ").strip() 
-    minSamplesSplit = input("Minimum number of samples required to split an internal node: ").strip() 
-    minSamplesLeaf = input("Minimum number of samples required to be at a leaf node: ").strip() 
-    maxLeaf = input("Maximum number of leaf nodes: ").strip() 
-    classWeight = input("Class Weight: ").strip()
-    ccpAlpha = input("Complexity parameter used for Minimal Cost-Complexity Pruning: ").strip() 
-    k_foldProcess(
-        k=k, 
-        modelCriterion=modelCriterion, 
-        maxDepth=maxDepth, 
-        minSamplesSplit=minSamplesSplit, 
-        minSamplesLeaf=minSamplesLeaf, 
-        maxLeaf=maxLeaf,
-        classWeight=classWeight, 
-        ccpAlpha=ccpAlpha, 
-    )
+    modelEvaluation()
