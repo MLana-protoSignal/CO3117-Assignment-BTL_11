@@ -16,6 +16,19 @@ def k_foldProcess(
         classWeight=None, 
         ccpAlpha=0.0
     ):
+
+    print(f"----------------------------------------------------------------------------------------------")
+    print(f"k-Fold Cross-Validation: random_state = {randomStateCross}")
+    print(f"k-Fold Cross-Validation: shuffle = True")
+    print(f"k-Fold Cross-Validation: k = {k}")
+    print(f"Model: random_state = 42")
+    print(f"Model: criterion = {modelCriterion}")
+    print(f"Model: max_depth = {maxDepth}")
+    print(f"Model: max_leaf_nodes = {maxLeaf}")
+    print(f"Model: min_samples_split = {minSamplesSplit}")
+    print(f"Model: min_samples_leaf = {minSamplesLeaf}")
+    print(f"Model: class_weight = {classWeight}")
+    print(f"Model: ccp_alpha = {ccpAlpha}")
     
     # k-Fold divide
     df = pd.read_csv('healthcare-dataset-stroke-data.csv')
@@ -29,12 +42,12 @@ def k_foldProcess(
 
     # Decision Tree
     decisionTreeModel = model_decisionTree_declare(
+        random_state=42,
         criterion=modelCriterion, 
         max_depth=maxDepth, 
         max_leaf_nodes=maxLeaf,
         min_samples_split=minSamplesSplit, 
         min_samples_leaf=minSamplesLeaf, 
-        random_state=42,
         class_weight=classWeight, 
         ccp_alpha=ccpAlpha
     )
@@ -42,12 +55,12 @@ def k_foldProcess(
 
     # Random Forest
     randomForestModel = model_randomForest_declare(
+        random_state=42,
         criterion=modelCriterion,
         max_depth=maxDepth, 
         max_leaf_nodes=maxLeaf,
         min_samples_split=minSamplesSplit, 
         min_samples_leaf=minSamplesLeaf,
-        random_state=42,
         class_weight=classWeight, 
         ccp_alpha=ccpAlpha
     )
@@ -81,9 +94,10 @@ def k_foldProcess(
         ]
     })
     print(comparisonResult.to_string(index=False))
+    print(f"----------------------------------------------------------------------------------------------")
     # Finish Performance evaluating 
 
-# Model Evaluation
+# Model Performance Evaluation
 def modelEvaluation():
     randomStateCross1 = [0, 42, 100]
     k2 = [3, 5, 10]  
@@ -95,24 +109,39 @@ def modelEvaluation():
     classWeight6 = [None, 'balanced'] 
     ccpAlpha6 = [0.0, 0.0001, 0.001, 0.01, 0.5]
 
-    print("Model Evaluation")
+    print("================================ MODEL PERFORMANCE EVALUATION ================================")
+    
+    # SCENARIO 1: Change random_state of cross_validate() function
+    print("SCENARIO 1:")
     for randomStateCross in randomStateCross1:
         k_foldProcess(randomStateCross=randomStateCross)
 
+    # SCENARIO 2: Change k of cross_validate() function
+    print("SCENARIO 2:")
     for k in k2:
         k_foldProcess(k=k)
 
+    # SCENARIO 3: Change criterion of model_decisionTree_declare() and model_randomForest_declare()
+    print("SCENARIO 3:")
     for modelCriterion in modelCriterion3:
         k_foldProcess(modelCriterion=modelCriterion)
 
+    # SCENARIO 4: Change max_depth and max_leaf_nodes of model_decisionTree_declare() and model_randomForest_declare()
+    print("SCENARIO 4:")
     for maxDepth, maxLeaf in zip(maxDepth4, maxLeaf4):
         k_foldProcess(maxDepth=maxDepth, maxLeaf=maxLeaf)
 
+    # SCENARIO 5: Change min_samples_split and min_samples_leaf of model_decisionTree_declare() and model_randomForest_declare()
+    print("SCENARIO 5:")
     for minSamplesSplit, minSamplesLeaf in zip(minSamplesSplit5, minSamplesLeaf5):
         k_foldProcess(minSamplesSplit=minSamplesSplit, minSamplesLeaf=minSamplesLeaf) 
 
+    # SCENARIO 6: Change class_weight and ccp_alpha of model_decisionTree_declare() and model_randomForest_declare()
+    print("SCENARIO 6:")
     for classWeight, ccpAlpha in zip(classWeight6, ccpAlpha6):
         k_foldProcess(classWeight=classWeight, ccpAlpha=ccpAlpha)
+
+    print("==============================================================================================")
 
 if __name__ == "__main__":
     modelEvaluation()
