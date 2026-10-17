@@ -2,8 +2,16 @@ from random_forest_train import model_randomForest_declare
 from decision_tree_train import model_decisionTree_declare
 import numpy as np
 import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import StratifiedKFold, cross_validate
-from sklearn.metrics import classification_report
+from sklearn.metrics import make_scorer, precision_score, recall_score, f1_score
+from imblearn.pipeline import Pipeline as ImbPipeline
+from imblearn.over_sampling import SMOTENC
 
 # k-fold testing
 def k_foldProcess(
@@ -32,14 +40,70 @@ def k_foldProcess(
     print(f"Model: ccp_alpha = {ccpAlpha}")
     
     # k-Fold divide
-    df = pd.read_csv('stroke_preprocessed.csv')
+    # Start Preprocessing
+    df = pd.read_csv('healthcare-dataset-stroke-data.csv')
+    df = df.drop(columns=['id'], errors='ignore')
+    df = df[df['gender'] != 'Other']
+    df = df.dropna(subset=['stroke'])
     features = df.drop(columns=['stroke'])
     target = df['stroke']
+
+    num_cols_skewed = ['avg_glucose_level', 'bmi']  
+    num_cols_normal = ['age']  
+    binary_cols = ['hypertension', 'heart_disease']  
+    cat_cols = ['gender', 'ever_married', 'work_type', 'Residence_type', 'smoking_status']  
+
+    num_skewed_pipeline = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('log_transform', FunctionTransformer(np.log1p, validate=False)),
+        ('scaler', StandardScaler())
+    ])
+    num_normal_pipeline = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')), 
+        ('scaler', StandardScaler())
+    ])
+    cat_pipeline = Pipeline([
+        ('onehot', OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False))
+    ])
+    preprocessor = ColumnTransformer(transformers=[
+        ('num_skewed', num_skewed_pipeline, num_cols_skewed),
+        ('num_normal', num_normal_pipeline, num_cols_normal),
+        ('binary', 'passthrough', binary_cols),  # Giữ nguyên giá trị 0/1 của 2 cột này
+        ('cat', cat_pipeline, cat_cols)
+    ])
+    X_preprocessed = preprocessor.fit_transform(features)
+
+    encoded_cat_cols = list(preprocessor.named_transformers_['cat'].named_steps['onehot'].get_feature_names_out(cat_cols))
+    feature_names = num_cols_skewed + num_cols_normal + binary_cols + encoded_cat_cols
+    categorical_feature_names = binary_cols + encoded_cat_cols
+    cat_indices = [feature_names.index(col) for col in categorical_feature_names]
+    # End Preprocessing
+
     k_foldDivide = StratifiedKFold(n_splits=k, shuffle=True, random_state=randomStateCross)
 
     # Start Performance evaluating
     # Define Metric to use in evaluation
-    scoringMetrics = ['precision', 'recall', 'f1']
+    scoringMetrics =  {
+        'accuracy': 'accuracy',
+
+        'precision': make_scorer(
+            precision_score,
+            pos_label=1,
+            zero_division=0
+        ),
+
+        'recall': make_scorer(
+            recall_score,
+            pos_label=1,
+            zero_division=0
+        ),
+
+        'f1': make_scorer(
+            f1_score,
+            pos_label=1,
+            zero_division=0
+        )
+    }
 
     # Decision Tree
     decisionTreeModel = model_decisionTree_declare(
@@ -52,7 +116,12 @@ def k_foldProcess(
         class_weight=classWeight, 
         ccp_alpha=ccpAlpha
     )
-    decisionTreeResult = cross_validate(decisionTreeModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=-1)
+    decisionTreePipeline = ImbPipeline([
+        ('preprocessor', preprocessor),
+        ('smote', SMOTENC(categorical_features=cat_indices,random_state=42)),
+        ('classifier', decisionTreeModel)
+    ])
+    decisionTreeResult = cross_validate(estimator=decisionTreePipeline,X=features,y=target,cv=k_foldDivide,scoring=scoringMetrics,n_jobs=-1)
 
     # Random Forest
     randomForestModel = model_randomForest_declare(
@@ -65,7 +134,12 @@ def k_foldProcess(
         class_weight=classWeight, 
         ccp_alpha=ccpAlpha
     )
-    randomForestResult = cross_validate(randomForestModel, features, target, cv=k_foldDivide, scoring=scoringMetrics, n_jobs=-1)
+    randomForestPipeline = ImbPipeline([
+        ('preprocessor', preprocessor),
+        ('smote', SMOTENC(categorical_features=cat_indices,random_state=42)),
+        ('classifier', randomForestModel)
+    ])
+    randomForestResult = cross_validate(estimator=randomForestPipeline,X=features,y=target,cv=k_foldDivide,scoring=scoringMetrics,n_jobs=-1)
 
     # Comparison Data
     comparisonResult = pd.DataFrame({
