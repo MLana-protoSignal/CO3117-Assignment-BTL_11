@@ -84,8 +84,6 @@ def k_foldProcess(
     # Start Performance evaluating
     # Define Metric to use in evaluation
     scoringMetrics =  {
-        'accuracy': 'accuracy',
-
         'precision': make_scorer(
             precision_score,
             pos_label=1,
