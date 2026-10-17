@@ -48,3 +48,18 @@ Cách sử dụng sẽ giống hệt với decision tree, chỉ đổi tên.
 Hiện tại thì mới test xem các hàm hoạt động tốt không, chưa triển khai vấn đề hỏi người dùng khai báo thông số cho model (cái này thì cũng nhanh thôi), nhưng về cơ bản là oke hết rồi, nếu muốn phát triển thêm code thì hãy thêm vào main hoặc sử dụng các API tôi đã định sẵn.
 
 Theo tôi thì về luồng chạy của main.py (chạy cái gì, dùng như nào, ...) nên để quyết định sau, hiện tại thì cứ làm và đóng gói các tính năng cốt lõi theo các requirement thành hàm để vào main gọi cho dễ.
+
+# PATCH 1.1.3: đã thêm lại các tham số có thể dùng chung cho cả 2 mô hình là
+        criterion='gini',
+        max_depth=None, 
+        min_samples_split=2, 
+        min_samples_leaf=1, 
+        min_weight_fraction_leaf=0.0, 
+        max_features='sqrt', 
+        max_leaf_nodes=None, 
+        min_impurity_decrease=0.0, 
+        random_state=None, 
+        class_weight=None,
+        ccp_alpha=0.0, 
+        monotonic_cst=None
+        random_state=42
