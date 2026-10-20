@@ -1,4 +1,34 @@
+"""
+TASK 5 - TỐI ƯU THAM SỐ (HYPERPARAMETER TUNING) CHO DECISION TREE VÀ RANDOM FOREST
+==================================================================================
+Chạy (sau khi đã chạy Tien_Xu_Ly.py để có preprocessor.pkl):
 
+    python hyperparameter_tuning.py
+
+Script cần trong cùng thư mục: healthcare-dataset-stroke-data.csv, preprocessor.pkl,
+decision_tree_train.py và random_forest_train.py (chỉ để lấy hàm khai báo mô hình của task 3).
+
+Script làm các việc sau:
+  0. (Tùy chọn) Minh họa vì sao KHÔNG được cross-validation trực tiếp trên dữ liệu đã SMOTENC.
+  1. Tuning Decision Tree (GridSearchCV) và Random Forest (RandomizedSearchCV).
+  2. So sánh Baseline (mô hình task 3) với Tuned trên CÙNG tập test.
+  3. Lưu bảng so sánh, biểu đồ, tham số tốt nhất vào thư mục KetQuaTuning/
+     và lưu 2 mô hình mới: decision_tree_tuned_model.pkl, random_forest_tuned_model.pkl.
+
+VÌ SAO SCRIPT TỰ CHIA DỮ LIỆU TỪ FILE GỐC, KHÔNG DÙNG stroke_preprocessed.csv?
+-----------------------------------------------------------------------------------
+stroke_preprocessed.csv do Tien_Xu_Ly.py tạo ra đã bị SMOTENC trên TOÀN BỘ dữ liệu (và bộ tiền xử lý
+cũng fit trên toàn bộ dữ liệu), nên không còn tập test thật nào để đánh giá: mỗi ca stroke "ảo" được
+sinh ra từ các ca stroke thật nằm gần nó, và cả hai nằm lẫn trong mọi lần chia. Chia file này ra
+train/validation/test thì mô hình chỉ cần nhớ là đoán đúng => điểm cao ảo => chọn sai tham số.
+Cách làm đúng (dùng ở đây):
+  - Chia train/test (80/20, stratify) từ file gốc TRƯỚC khi làm bất cứ việc gì khác.
+  - Đặt  tiền xử lý -> SMOTENC -> mô hình  vào một imblearn Pipeline, để mỗi fold chỉ fit/SMOTE trên
+    phần train của fold đó; phần validation giữ nguyên phân phối thật (~5% stroke).
+  - Tập test không đụng tới cho đến bước so sánh cuối cùng.
+  - Baseline được huấn luyện lại ngay trong script trên CÙNG tập train với mô hình tuned (bằng hàm
+    khai báo của task 3), nên so sánh baseline với tuned là công bằng.
+"""
 
 import json
 import os
@@ -35,14 +65,21 @@ from sklearn.model_selection import (
 )
 from sklearn.tree import DecisionTreeClassifier
 
+try:  # hàm khai báo mô hình baseline của task 3 (2 file này phải nằm cùng thư mục với script)
+    from decision_tree_train import model_decisionTree_declare
+    from random_forest_train import model_randomForest_declare
+except ImportError as err:
+    raise SystemExit(f'Lỗi: không import được file train của task 3 ({err}). '
+                     'Hãy đặt decision_tree_train.py và random_forest_train.py cùng thư mục với script này.')
+
 # ============================== CẤU HÌNH ==============================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(BASE_DIR, 'KetQuaTuning')
 
-RANDOM_STATE = 42        # phải trùng với Tien_Xu_Ly.py để chia train/test giống hệt
+RANDOM_STATE = 42        # dùng cho mọi bước ngẫu nhiên (chia dữ liệu, SMOTENC, CV, mô hình)
 N_SPLITS = 5             # số fold của cross-validation
 N_ITER_RF = 30           # số cấu hình Random Forest được thử (RandomizedSearchCV)
-N_JOBS = 1              # dùng hết nhân CPU (đặt 1 nếu máy yếu hoặc gặp lỗi đa tiến trình)
+N_JOBS = 1               # 1 = chạy tuần tự, ít tốn RAM (đặt -1 để dùng hết nhân CPU nếu máy khỏe)
 RUN_LEAKAGE_DEMO = True  # in bảng minh họa rò rỉ dữ liệu (mục 0)
 
 # Metric dùng để CHỌN tham số tốt nhất. Dữ liệu mất cân bằng (~5% stroke) nên không dùng accuracy.
@@ -58,10 +95,11 @@ SCORING = {  # các metric được ghi lại trong mỗi lần cross-validation
 }
 
 # Không tune class_weight vì SMOTENC đã cân bằng 50/50 trong từng fold train.
-DT_GRID = {  # 2 x 8 x 5 = 80 cấu hình -> đủ nhỏ để duyệt hết bằng GridSearchCV
+DT_GRID = {  # 2 x 8 x 5 x 2 = 160 cấu hình -> đủ nhỏ để duyệt hết bằng GridSearchCV
     'clf__criterion': ['gini', 'entropy'],
     'clf__max_depth': [3, 4, 5, 6, 8, 10, 15, None],
     'clf__min_samples_leaf': [1, 5, 10, 20, 50],
+    'clf__max_features': ['sqrt', None],  # 'sqrt' là mặc định trong model_decisionTree_declare của task 3
 }
 RF_DIST = {  # 2160 cấu hình -> quá lớn để duyệt hết, chỉ lấy ngẫu nhiên N_ITER_RF cấu hình
     'clf__n_estimators': [100, 200, 300, 500],
@@ -73,9 +111,16 @@ RF_DIST = {  # 2160 cấu hình -> quá lớn để duyệt hết, chỉ lấy n
 }
 
 NUMERIC_FEATURES = ['avg_glucose_level', 'bmi', 'age']  # cột số trong Tien_Xu_Ly.py (phần còn lại là 0/1)
-BASELINE_FILES = {
-    'Decision Tree': 'decision_tree_stroke_model.pkl',
-    'Random Forest': 'random_forest_stroke_model.pkl',
+# Tham số baseline (task 3), truyền vào model_decisionTree_declare / model_randomForest_declare.
+# Tham số không ghi ở đây lấy mặc định của hai hàm đó. Hãy đổi cho khớp với tham số nhóm chốt ở task 3.
+BASELINE_PARAMS = {
+    'Decision Tree': {'max_depth': 5},   # giống main.py: model_decisionTree_declare(max_depth=5)
+    'Random Forest': {},                 # giống main.py: model_randomForest_declare()
+}
+SHOW_PARAMS = {  # tham số được in ra và ghi vào best_params.json để so sánh baseline với tuned
+    'Decision Tree': ['criterion', 'max_depth', 'min_samples_leaf', 'max_features'],
+    'Random Forest': ['n_estimators', 'criterion', 'max_depth', 'min_samples_split',
+                      'min_samples_leaf', 'max_features'],
 }
 TUNED_FILES = {
     'Decision Tree': 'decision_tree_tuned_model.pkl',
@@ -96,10 +141,9 @@ def need_file(filename, hint):
 # ============================== DỮ LIỆU ==============================
 def load_data():
     need_file('healthcare-dataset-stroke-data.csv', 'Hãy đặt file dữ liệu gốc cùng thư mục với script.')
-    for f in ['preprocessor.pkl', 'stroke_train_preprocessed.csv', 'stroke_test_preprocessed.csv']:
-        need_file(f, 'Hãy chạy Tien_Xu_Ly.py trước!')
+    need_file('preprocessor.pkl', 'Hãy chạy Tien_Xu_Ly.py trước!')
 
-    # 1) Dựng lại tập train/test GỐC, đúng từng bước như Tien_Xu_Ly.py
+    # 1) Làm sạch giống Tien_Xu_Ly.py, rồi chia train/test GỐC (80/20) TRƯỚC mọi bước xử lý khác
     df = pd.read_csv(path('healthcare-dataset-stroke-data.csv')).drop(columns=['id'])
     df = df[df['gender'] != 'Other']
     X, y = df.drop(columns=['stroke']), df['stroke']
@@ -107,35 +151,48 @@ def load_data():
         X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
     )
 
-    # 2) Preprocessor đã fit ở task 3 (chỉ dùng để lấy cấu hình + tên cột)
+    # 2) Cấu hình tiền xử lý lấy từ preprocessor.pkl của Tien_Xu_Ly.py (clone = bản CHƯA fit) + tên cột
     prep_data = joblib.load(path('preprocessor.pkl'))
     preprocessor, feature_names = prep_data['preprocessor'], prep_data['feature_names']
     cat_indices = [i for i, n in enumerate(feature_names) if n not in NUMERIC_FEATURES]
 
-    # 3) Các file của task 3: train đã SMOTENC (để huấn luyện mô hình cuối) và test (để đánh giá)
-    train_df = pd.read_csv(path('stroke_train_preprocessed.csv'))
-    test_df = pd.read_csv(path('stroke_test_preprocessed.csv'))
-
-    # 4) Kiểm tra: tập test dựng lại từ dữ liệu gốc phải TRÙNG file test của task 3
-    same_x = np.allclose(preprocessor.transform(X_test_raw), test_df[feature_names].values)
-    same_y = bool((y_test_raw.values == test_df['stroke'].values).all())
-    if not (same_x and same_y):
-        print('Lỗi: tập test dựng lại KHÔNG trùng stroke_test_preprocessed.csv. '
-              'Có thể Tien_Xu_Ly.py đã đổi cách chia dữ liệu; hãy sửa phần chia dữ liệu trong script này cho khớp.')
-        raise SystemExit(1)
+    # 3) Fit tiền xử lý và SMOTENC CHỈ trên tập train; tập test chỉ transform, không SMOTE
+    prep = clone(preprocessor).fit(X_train_raw)
+    X_train_sm, y_train_sm = SMOTENC(categorical_features=cat_indices, random_state=RANDOM_STATE).fit_resample(
+        prep.transform(X_train_raw), y_train_raw
+    )
 
     return {
         'X_train_raw': X_train_raw, 'y_train_raw': y_train_raw,
         'preprocessor': preprocessor, 'feature_names': feature_names, 'cat_indices': cat_indices,
-        'X_train_smote': train_df[feature_names], 'y_train_smote': train_df['stroke'],
-        'X_test': test_df[feature_names], 'y_test': test_df['stroke'],
+        # train đã tiền xử lý + SMOTENC: dùng để huấn luyện baseline và mô hình tuned cuối cùng
+        'X_train_smote': pd.DataFrame(X_train_sm, columns=feature_names),
+        'y_train_smote': pd.Series(np.asarray(y_train_sm), name='stroke'),
+        # test đã tiền xử lý (giữ nguyên phân phối thật): chỉ dùng để đánh giá cuối
+        'X_test': pd.DataFrame(prep.transform(X_test_raw), columns=feature_names),
+        'y_test': y_test_raw.reset_index(drop=True),
     }
+
+
+def build_baselines(d):
+    """Baseline task 3: khai báo bằng hàm của nhóm, huấn luyện trên CÙNG tập train (đã SMOTENC) với mô hình tuned."""
+    baselines = {
+        'Decision Tree': model_decisionTree_declare(**BASELINE_PARAMS['Decision Tree']),
+        'Random Forest': model_randomForest_declare(n_jobs=1, **BASELINE_PARAMS['Random Forest']),
+    }
+    for model in baselines.values():
+        model.fit(d['X_train_smote'], d['y_train_smote'])
+    return baselines
+
+
+def show_params(model, name):
+    return {k: model.get_params()[k] for k in SHOW_PARAMS[name]}
 
 
 def make_pipeline(clf, d):
     """tiền xử lý -> SMOTENC -> mô hình. Trong cross-validation, mọi bước đều chỉ fit trên fold train."""
     return ImbPipeline([
-        ('prep', clone(d['preprocessor'])),  # bản CHƯA fit của preprocessor task 3
+        ('prep', clone(d['preprocessor'])),  # bản CHƯA fit của preprocessor
         ('smote', SMOTENC(categorical_features=d['cat_indices'], random_state=RANDOM_STATE)),
         ('clf', clf),
     ])
@@ -160,7 +217,7 @@ def evaluate(model, X, y):
 def demo_leakage(baselines, d, cv):
     """Mục 0: so sánh điểm F1 khi CV sai (trên file đã SMOTENC) với CV đúng và với test thật."""
     print('\n' + '=' * 78)
-    print('0. VÌ SAO KHÔNG CROSS-VALIDATE TRỰC TIẾP TRÊN stroke_train_preprocessed.csv?')
+    print('0. VÌ SAO KHÔNG CROSS-VALIDATE TRỰC TIẾP TRÊN DỮ LIỆU ĐÃ SMOTENC?')
     print('   (mô hình dùng đúng siêu tham số baseline của task 3, F1 của lớp stroke)')
     print('=' * 78)
     rows = {}
@@ -170,7 +227,7 @@ def demo_leakage(baselines, d, cv):
         right = cross_validate(make_pipeline(clone(model), d), d['X_train_raw'], d['y_train_raw'],
                                cv=cv, scoring='f1', n_jobs=N_JOBS)['test_score'].mean()
         rows[name] = {
-            'CV trên file đã SMOTENC (SAI)': wrong,
+            'CV trên dữ liệu đã SMOTENC (SAI)': wrong,
             'CV đúng (SMOTENC trong fold)': right,
             'F1 trên test thật': f1_score(d['y_test'], model.predict(d['X_test'])),
         }
@@ -206,7 +263,7 @@ def run_search(name, search_cls, estimator, params, d, cv, **kwargs):
 
 
 def fit_tuned_model(search, d):
-    """Huấn luyện lại bộ phân loại với tham số tốt nhất trên CHÍNH file train của task 3 (cùng dữ liệu với baseline)."""
+    """Huấn luyện lại bộ phân loại với tham số tốt nhất trên CHÍNH tập train đã SMOTENC (cùng dữ liệu với baseline)."""
     clf = clone(search.best_estimator_.named_steps['clf'])
     return clf.fit(d['X_train_smote'], d['y_train_smote'])
 
@@ -241,12 +298,13 @@ def plot_pr_curves(models, d, file):
 
 
 def plot_dt_heatmap(search, file):
-    """Điểm CV của Decision Tree theo max_depth và min_samples_leaf (tại criterion tốt nhất)."""
+    """Điểm CV của Decision Tree theo max_depth và min_samples_leaf (tại criterion và max_features tốt nhất)."""
     crit = search.best_params_['clf__criterion']
+    mfeat = search.best_params_['clf__max_features']
     depths, leaves = DT_GRID['clf__max_depth'], DT_GRID['clf__min_samples_leaf']
-    score = {(p['clf__criterion'], p['clf__max_depth'], p['clf__min_samples_leaf']): s
+    score = {(p['clf__criterion'], p['clf__max_features'], p['clf__max_depth'], p['clf__min_samples_leaf']): s
              for p, s in zip(search.cv_results_['params'], search.cv_results_[f'mean_test_{REFIT_METRIC}'])}
-    z = np.array([[score[(crit, dep, lf)] for lf in leaves] for dep in depths])
+    z = np.array([[score[(crit, mfeat, dep, lf)] for lf in leaves] for dep in depths])
 
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(z, cmap='viridis', aspect='auto')
@@ -261,7 +319,7 @@ def plot_dt_heatmap(search, file):
                     color='black' if z[i, j] > mid else 'white')
     ax.set_xlabel('min_samples_leaf')
     ax.set_ylabel('max_depth')
-    ax.set_title(f'Decision Tree: {REFIT_METRIC} (CV) theo siêu tham số (criterion={crit})')
+    ax.set_title(f'Decision Tree: {REFIT_METRIC} (CV) theo siêu tham số\n(criterion={crit}, max_features={mfeat})')
     fig.colorbar(im, ax=ax)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, file), dpi=150)
@@ -274,9 +332,10 @@ def main():
     d = load_data()
     cv = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE)
 
-    for f in BASELINE_FILES.values():
-        need_file(f, 'Hãy chạy decision_tree_train.py và random_forest_train.py trước!')
-    baselines = {name: joblib.load(path(f)) for name, f in BASELINE_FILES.items()}
+    baselines = build_baselines(d)
+    print('Baseline (task 3), huấn luyện trên tập train đã SMOTENC:')
+    for name, model in baselines.items():
+        print(f'  {name}: {show_params(model, name)}')
 
     if RUN_LEAKAGE_DEMO:
         demo_leakage(baselines, d, cv)
@@ -311,11 +370,12 @@ def main():
     table = pd.DataFrame(rows).T
     table[['TN', 'FP', 'FN', 'TP']] = table[['TN', 'FP', 'FN', 'TP']].astype(int)
     print(table.round(3).to_string())
-    print('(F1 train tính trên stroke_train_preprocessed.csv; càng gần 1.0 càng cho thấy mô hình học thuộc dữ liệu train)')
+    print('(F1 train tính trên tập train đã SMOTENC; càng gần 1.0 càng cho thấy mô hình học thuộc dữ liệu train)')
     table.round(4).to_csv(os.path.join(OUT_DIR, 'bang_so_sanh.csv'), encoding='utf-8-sig')
 
     best_params = {
         'metric_chon_tham_so': REFIT_METRIC,
+        'baseline': {name: show_params(model, name) for name, model in baselines.items()},
         'Decision Tree': {k[5:]: v for k, v in search_dt.best_params_.items()},
         'Random Forest': {k[5:]: v for k, v in search_rf.best_params_.items()},
     }
