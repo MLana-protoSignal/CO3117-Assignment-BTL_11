@@ -39,6 +39,7 @@ import matplotlib
 
 matplotlib.use('Agg')  # chỉ lưu ảnh ra file, không mở cửa sổ
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import pandas as pd
 from imblearn.over_sampling import SMOTENC
@@ -47,11 +48,11 @@ from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
-    PrecisionRecallDisplay,
     accuracy_score,
     average_precision_score,
     confusion_matrix,
     f1_score,
+    precision_recall_curve,
     precision_score,
     recall_score,
     roc_auc_score,
@@ -122,10 +123,25 @@ SHOW_PARAMS = {  # tham số được in ra và ghi vào best_params.json để 
     'Random Forest': ['n_estimators', 'criterion', 'max_depth', 'min_samples_split',
                       'min_samples_leaf', 'max_features'],
 }
+VI_NAMES = {  # tên tiếng Việt dùng trên các hình
+    'Decision Tree (baseline)': 'Cây quyết định (cơ sở)',
+    'Decision Tree (tuned)': 'Cây quyết định (đã tối ưu)',
+    'Random Forest (baseline)': 'Rừng ngẫu nhiên (cơ sở)',
+    'Random Forest (tuned)': 'Rừng ngẫu nhiên (đã tối ưu)',
+}
 TUNED_FILES = {
     'Decision Tree': 'decision_tree_tuned_model.pkl',
     'Random Forest': 'random_forest_tuned_model.pkl',
 }
+
+
+def vn(x, nd=2):
+    """Số thập phân dùng dấu phẩy (cho nhãn trên hình)."""
+    return f'{x:.{nd}f}'.replace('.', ',')
+
+
+def comma_axis(axis):
+    axis.set_major_formatter(FuncFormatter(lambda v, _: f'{v:g}'.replace('.', ',')))
 
 
 def path(name):
@@ -274,10 +290,12 @@ def plot_confusion_matrices(models, d, file):
     for ax, (name, model) in zip(axes.ravel(), models.items()):
         ConfusionMatrixDisplay.from_predictions(
             d['y_test'], model.predict(d['X_test']), ax=ax, colorbar=False, values_format='d',
-            display_labels=['Không stroke', 'Stroke'], cmap='Blues',
+            display_labels=['Không đột quỵ', 'Đột quỵ'], cmap='Blues',
         )
-        ax.set_title(name)
-    fig.suptitle('Ma trận nhầm lẫn trên tập test')
+        ax.set_title(VI_NAMES.get(name, name))
+        ax.set_xlabel('Nhãn dự đoán')
+        ax.set_ylabel('Nhãn thật')
+    fig.suptitle('Ma trận nhầm lẫn trên tập kiểm tra')
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, file), dpi=150)
     plt.close(fig)
@@ -286,11 +304,17 @@ def plot_confusion_matrices(models, d, file):
 def plot_pr_curves(models, d, file):
     fig, ax = plt.subplots(figsize=(7, 6))
     for name, model in models.items():
-        PrecisionRecallDisplay.from_predictions(
-            d['y_test'], model.predict_proba(d['X_test'])[:, 1], name=name, ax=ax
-        )
-    ax.axhline(d['y_test'].mean(), ls='--', c='gray', label=f"Đoán ngẫu nhiên ({d['y_test'].mean():.3f})")
-    ax.set_title('Precision-Recall trên tập test')
+        proba = model.predict_proba(d['X_test'])[:, 1]
+        precision, recall, _ = precision_recall_curve(d['y_test'], proba)
+        ap = average_precision_score(d['y_test'], proba)
+        ax.step(recall, precision, where='post', label=f"{VI_NAMES.get(name, name)} (PR-AUC = {vn(ap)})")
+    rate = d['y_test'].mean()
+    ax.axhline(rate, ls='--', c='gray', label=f'Đoán ngẫu nhiên ({vn(rate, 3)})')
+    ax.set_xlabel('Độ nhạy (recall)')
+    ax.set_ylabel('Độ chính xác dương (precision)')
+    comma_axis(ax.xaxis)
+    comma_axis(ax.yaxis)
+    ax.set_title('Đường Precision-Recall trên tập kiểm tra')
     ax.legend(loc='upper right')
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, file), dpi=150)
@@ -315,12 +339,13 @@ def plot_dt_heatmap(search, file):
     mid = (z.min() + z.max()) / 2
     for i in range(len(depths)):
         for j in range(len(leaves)):
-            ax.text(j, i, f'{z[i, j]:.2f}', ha='center', va='center', fontsize=8,
+            ax.text(j, i, vn(z[i, j]), ha='center', va='center', fontsize=8,
                     color='black' if z[i, j] > mid else 'white')
     ax.set_xlabel('min_samples_leaf')
     ax.set_ylabel('max_depth')
-    ax.set_title(f'Decision Tree: {REFIT_METRIC} (CV) theo siêu tham số\n(criterion={crit}, max_features={mfeat})')
-    fig.colorbar(im, ax=ax)
+    ax.set_title(f'Cây quyết định: điểm {REFIT_METRIC.upper()} (kiểm chứng chéo) theo siêu tham số\n(criterion={crit}, max_features={mfeat})')
+    cb = fig.colorbar(im, ax=ax)
+    comma_axis(cb.ax.yaxis)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, file), dpi=150)
     plt.close(fig)
