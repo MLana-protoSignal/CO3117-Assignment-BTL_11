@@ -3,7 +3,7 @@ import joblib
 import pandas as pd
 
 def load_resources():
-    model_file = 'randomForest_stroke_model.pkl'
+    model_file = 'random_forest_stroke_model.pkl'
     prep_file = 'preprocessor.pkl'
 
     if not os.path.exists(model_file):

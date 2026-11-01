@@ -53,9 +53,9 @@ def train_randomForest_model(model_input):
     model_input.fit(X_train, y_train)
     
     # 4. Ask for the filename to save the model (default = 'randomForest_stroke_model.pkl')
-    model_name_input = input("Enter filename to save the model (default = 'randomForest_stroke_model.pkl'): ").strip()
+    model_name_input = input("Enter filename to save the model (default = 'random_forest_stroke_model.pkl'): ").strip()
     if not model_name_input:
-        save_filename = 'randomForest_stroke_model.pkl'
+        save_filename = 'random_forest_stroke_model.pkl'
     else:
         # Automatically add the .pkl if the user does not enter it
         save_filename = model_name_input if model_name_input.endswith('.pkl') else f"{model_name_input}.pkl"
