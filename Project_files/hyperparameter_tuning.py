@@ -1,7 +1,7 @@
 """
 TASK 5 - HYPERPARAMETER TUNING FOR DECISION TREE AND RANDOM FOREST
 ==================================================================
-Run (after Tien_Xu_Ly.py has been run to produce preprocessor.pkl):
+Run (after preprocess.py has been run to produce preprocessor.pkl):
 
     python hyperparameter_tuning.py
 
@@ -17,7 +17,7 @@ The script does the following:
 
 WHY DOES THE SCRIPT SPLIT THE DATA ITSELF FROM THE RAW FILE INSTEAD OF USING stroke_preprocessed.csv?
 -----------------------------------------------------------------------------------------------------
-stroke_preprocessed.csv, created by Tien_Xu_Ly.py, was SMOTENC-oversampled on the WHOLE dataset (and the
+stroke_preprocessed.csv, created by preprocess.py, was SMOTENC-oversampled on the WHOLE dataset (and the
 preprocessor was also fitted on the whole dataset), so no real test set is left to evaluate on: every
 "synthetic" stroke case is generated from nearby real stroke cases, and both are mixed into every split.
 If this file is split into train/validation/test, the model only has to memorize to predict correctly
@@ -119,7 +119,7 @@ RF_DIST = {  # 2160 configurations -> too many to search exhaustively, only samp
     'clf__max_features': ['sqrt', 'log2', 0.5],
 }
 
-NUMERIC_FEATURES = ['avg_glucose_level', 'bmi', 'age']  # numeric columns in Tien_Xu_Ly.py (the rest are 0/1)
+NUMERIC_FEATURES = ['avg_glucose_level', 'bmi', 'age']  # numeric columns in preprocess.py (the rest are 0/1)
 # Baseline (Task 3) parameters, passed to model_decisionTree_declare / model_randomForest_declare.
 # Parameters not listed here take the defaults of those two functions. Change them to match what the group fixed in Task 3.
 BASELINE_PARAMS = {
@@ -165,9 +165,9 @@ def need_file(filename, hint):
 # ============================== DATA ==============================
 def load_data():
     need_file('healthcare-dataset-stroke-data.csv', 'Please put the raw data file in the same folder as the script.')
-    need_file('preprocessor.pkl', 'Please run Tien_Xu_Ly.py first!')
+    need_file('preprocessor.pkl', 'Please run preprocess.py first!')
 
-    # 1) Clean the data like Tien_Xu_Ly.py, then make the ORIGINAL train/test split (80/20) BEFORE any other step
+    # 1) Clean the data like preprocess.py, then make the ORIGINAL train/test split (80/20) BEFORE any other step
     df = pd.read_csv(path('healthcare-dataset-stroke-data.csv')).drop(columns=['id'])
     df = df[df['gender'] != 'Other']
     X, y = df.drop(columns=['stroke']), df['stroke']
@@ -175,7 +175,7 @@ def load_data():
         X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
     )
 
-    # 2) Preprocessing configuration comes from preprocessor.pkl of Tien_Xu_Ly.py (clone = UNFITTED copy) + column names
+    # 2) Preprocessing configuration comes from preprocessor.pkl of preprocess.py (clone = UNFITTED copy) + column names
     prep_data = joblib.load(path('preprocessor.pkl'))
     preprocessor, feature_names = prep_data['preprocessor'], prep_data['feature_names']
     cat_indices = [i for i, n in enumerate(feature_names) if n not in NUMERIC_FEATURES]
