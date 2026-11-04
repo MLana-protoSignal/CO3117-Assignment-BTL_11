@@ -27,7 +27,6 @@ Khi chạy file main.py, hệ thống sẽ hiện thực một chương trình c
     * Process = 0: Chương trình in ra thông báo kết thúc, đồng thời kết thúc vòng lặp và chương trình kết thúc.
     * Process = 1: Chương trình yêu cầu người dùng chọn giải thuật học máy (Decision Tree hoặc Random Forest) và chạy file python predictor tương ứng. Khi này, chương trình cần 2 file decision_tree_stroke_model.pkl và random_forest_stroke_model.pkl để có thể dự đoán dựa trên mô hình với các tham số mặc định tối ưu đã được huấn luyện ở bước 3. Khi không có, decision_tree_stroke_model.pkl và random_forest_stroke_model.pkl thì chỉ cần không gọi Process = 1 là hệ thống sẽ không phát sinh lỗi.
     * Process = 2: Chương trình yêu cầu người dùng chọn giải thuật học máy (Decision Tree hoặc Random Forest hoặc chạy cả 2) và sau đó sẽ chọn loại model để tiến hành đánh giá hiệu năng trên file data gốc healthcare-dataset-stroke-data.csv có sẵn. Với Default model, chương trình sẽ tự động lấy chính model đã khai báo ở bước 3 để tiến hành đánh giá. Với Input model, người dùng phải tự nhập các tham số để tiến hành đánh giá và người dùng có thể nhấn Enter để sử dụng tham số mặc định (default). Ở các bước yêu cầu lựa chọn như chọn giải thuật học máy hay chọn loại model, thì chương trình sẽ đưa người dùng về phần lựa chọn Process.
-
 ---
 ### Chạy file performance_evaluation.py (Tương đương với double-click vào file run_performance_evaluation.bat ở hệ điều hành Windows)
 
@@ -67,7 +66,6 @@ When the main.py file is executed, the system launches a program that allows use
     * Process = 0: The program prints a termination message, exits the loop, and then terminates.
     * Process = 1: The program requires user to select machine learning algorithm (Decision Tree or Random Forest) and run the corresponding Python predictor file. The program needs 2 file with .pkl extension (decision_tree_stroke_model.pkl and random_forest_stroke_model.pkl) to perform predictions based on the model with the optimal default parameters that were trained in stage 3. If 2 file with .pkl extension are missing, user simply ensure that Process is not set to 1, and the program will prevent the system from errors.
     * Process = 2: The program requires user to select machine learning algorithm (Decision Tree or Random Forest or both) and model to perform the evaluation on the origin dataset file (healthcare-dataset-stroke-data.csv). With Default model, the program will automatically use the very model declared in stage 3 to perform the evaluation. With Input model, user must manually enter the parameters to perform the evaluation, and user can press Enter to use default parameters. For steps that require user to select a machine learning algorithm or a model type, the program will direct the user to the Process selection step.
-
 ---
 ### Run the performance_evaluation.py file (Equivalent to double-clicking the run_performance_evaluation.bat file on the Windows operating system)
 
